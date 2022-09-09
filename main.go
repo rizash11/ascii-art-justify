@@ -3,44 +3,39 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"justify/asciiArtTemplates"
 	"log"
-	"os"
-	"os/exec"
-	"output/asciiArtTemplates"
-	"strconv"
 	"strings"
 )
 
 func main() {
-	outputBanner := flag.String("output", "output.txt", "creates a file with ascii art.")
+	align := flag.String("align", "left", "Aligns ascii-art on a console to the left, right, center, or justifies it.")
+	option := flag.String("option", "standard", "Ascii-art option: standard, thinkertoy, or shadow.")
 	flag.Parse()
 
 	args := flag.Args()
-	if len(args) != 2 {
-		log.Fatalln("Usage: go run . [OPTIONS] [STRING] [STYLE]")
+	if len(args) != 1 {
+		log.Fatalln("Usage: go run . [BANNERS] [STRING]")
 	}
-	asciiArtTemplates.ReadTemplates(&Store, args[1])
+	asciiArtTemplates.ReadTemplates(&Store, *option, &cWidth)
 
 	input := strings.Split(args[0], "\\n")
 	removeNewline(&input)
 
-	var outputString string
-
-	for _, s := range input {
-		if s == "" {
-			outputString = outputString + "\n"
-			continue
+	switch *align {
+	case "left":
+		for _, s := range input {
+			if s == "" {
+				continue
+			}
+			fmt.Print(PrintInput(s))
 		}
-		outputString = outputString + PrintInput(s)
 	}
-
-	os.Create(*outputBanner)
-	ioutil.WriteFile(*outputBanner, []byte(outputString), os.FileMode(os.O_RDONLY))
 }
 
 var (
-	Store [128][8]string // Переменная для хранения символов из файла
+	Store  [128][8]string // Переменная для хранения символов из файла
+	cWidth int
 )
 
 // Выводит данную строку на консоль символами из файла
@@ -56,6 +51,10 @@ func PrintInput(s string) (result string) {
 			}
 
 			tmp = tmp + Store[int(r)][i]
+		}
+
+		if len(tmp) > cWidth {
+			log.Fatalln("Ascii-art doesn't fit into console window.")
 		}
 
 		result = result + tmp + "\n"
@@ -78,19 +77,4 @@ func removeNewline(input *[]string) {
 	if nowords {
 		*input = (*input)[1:]
 	}
-}
-
-func ConsoleWidth() int {
-	cmd := exec.Command("stty", "size")
-	cmd.Stdin = os.Stdin
-	out, err := cmd.Output()
-	asciiArtTemplates.Check("Error measuring console size:", err)
-
-	outStr := string(out)
-	outStr = strings.TrimSpace(outStr)
-	heightWidth := strings.Split(outStr, " ")
-	width, err := strconv.Atoi(heightWidth[1])
-	asciiArtTemplates.Check("Error measuring console size:", err)
-
-	return width
 }

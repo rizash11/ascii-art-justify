@@ -7,10 +7,13 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
+	"strconv"
+	"strings"
 )
 
 // Эта функция запускается перед main и считывает файл в Store
-func ReadTemplates(Store *[128][8]string, style string) {
+func ReadTemplates(Store *[128][8]string, style string, cWidth *int) {
 	if !TxtFileCheck(style) {
 		log.Fatalln("The file was changed.")
 	}
@@ -28,6 +31,8 @@ func ReadTemplates(Store *[128][8]string, style string) {
 			Store[int(r)][i] = scanner.Text() // Каждый символ помещается в ячейку под номером своего ascii значенения
 		}
 	}
+
+	*cWidth = ConsoleWidth()
 }
 
 // Проверяет ошибку, выводит ее на консоль с сопроводительным сообщеением в строке, если она есть
@@ -76,4 +81,19 @@ func TxtFileCheck(style string) bool {
 	sum := fmt.Sprintf("%x", sha256.Sum(nil))
 
 	return sum == hash
+}
+
+func ConsoleWidth() int {
+	cmd := exec.Command("stty", "size")
+	cmd.Stdin = os.Stdin
+	out, err := cmd.Output()
+	Check("Error measuring console size:", err)
+
+	outStr := string(out)
+	outStr = strings.TrimSpace(outStr)
+	heightWidth := strings.Split(outStr, " ")
+	width, err := strconv.Atoi(heightWidth[1])
+	Check("Error measuring console size:", err)
+
+	return width
 }
