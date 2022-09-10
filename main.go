@@ -8,10 +8,18 @@ import (
 	"strings"
 )
 
+var alignOption string
+
 func main() {
 	align := flag.String("align", "left", "Aligns ascii-art on a console to the left, right, center, or justifies it.")
 	option := flag.String("option", "standard", "Ascii-art option: standard, thinkertoy, or shadow.")
 	flag.Parse()
+
+	*align = strings.ToLower(*align)
+	if *align != "left" && *align != "right" && *align != "center" && *align != "justify" {
+		log.Fatalln("No such aligning option.")
+	}
+	alignOption = *align
 
 	args := flag.Args()
 	if len(args) != 1 {
@@ -22,15 +30,18 @@ func main() {
 	input := strings.Split(args[0], "\\n")
 	removeNewline(&input)
 
-	switch *align {
-	case "left":
-		for _, s := range input {
-			if s == "" {
-				continue
-			}
-			fmt.Print(PrintInput(s))
-		}
+	if alignOption == "justify" {
+		justify(&input)
+		return
 	}
+
+	for _, s := range input {
+		if s == "" {
+			continue
+		}
+		fmt.Print(PrintInput(s))
+	}
+
 }
 
 var (
@@ -51,6 +62,13 @@ func PrintInput(s string) (result string) {
 			}
 
 			tmp = tmp + Store[int(r)][i]
+		}
+
+		switch alignOption {
+		case "right":
+			tmp = strings.Repeat(" ", cWidth-len(tmp)-1) + tmp
+		case "center":
+			tmp = strings.Repeat(" ", (cWidth-len(tmp))/2) + tmp
 		}
 
 		if len(tmp) > cWidth {
